@@ -84,6 +84,7 @@ Player *Game::spawn_player() {
 	//random point in the middle area of the arena:
 	player.position.x = glm::mix(ArenaMin.x + 2.0f * PlayerRadius, ArenaMax.x - 2.0f * PlayerRadius, 0.4f + 0.2f * mt() / float(mt.max()));
 	player.position.y = glm::mix(ArenaMin.y + 2.0f * PlayerRadius, ArenaMax.y - 2.0f * PlayerRadius, 0.4f + 0.2f * mt() / float(mt.max()));
+	player.radius = PlayerRadius;
 
 	do {
 		player.color.r = mt() / float(mt.max());
@@ -112,6 +113,7 @@ void Game::remove_player(Player *player) {
 void Game::update(float elapsed) {
 	//position/velocity update:
 	for (auto &p : players) {
+		if (!p.is_alive) continue;
 		glm::vec2 dir = glm::vec2(0.0f, 0.0f);
 		if (p.controls.left.pressed) dir.x -= 1.0f;
 		if (p.controls.right.pressed) dir.x += 1.0f;
@@ -148,16 +150,19 @@ void Game::update(float elapsed) {
 		p.controls.up.downs = 0;
 		p.controls.down.downs = 0;
 		p.controls.jump.downs = 0;
+		p.radius += 0.0001f;
 	}
 
 	//collision resolution:
 	for (auto &p1 : players) {
+		if (!p1.is_alive) continue;
 		//player/player collisions:
 		for (auto &p2 : players) {
 			if (&p1 == &p2) break;
+			if (!p2.is_alive) continue;
 			glm::vec2 p12 = p2.position - p1.position;
 			float len2 = glm::length2(p12);
-			if (len2 > (2.0f * PlayerRadius) * (2.0f * PlayerRadius)) continue;
+			if (len2 > (2.0f * p1.radius) * (2.0f * p2.radius)) continue;
 			if (len2 == 0.0f) continue;
 			glm::vec2 dir = p12 / std::sqrt(len2);
 			//mirror velocity to be in separating direction:
@@ -166,23 +171,29 @@ void Game::update(float elapsed) {
 			p2.velocity += 0.5f * delta_v12;
 			p1.velocity -= 0.5f * delta_v12;
 		}
+
+		// player out of bound, set is_alive:
+		if (p1.position.x < ArenaMin.x || p1.position.x > ArenaMax.x || p1.position.y < ArenaMin.y || p1.position.y > ArenaMax.y) {
+			p1.is_alive = false;
+		}
+
 		//player/arena collisions:
-		if (p1.position.x < ArenaMin.x + PlayerRadius) {
-			p1.position.x = ArenaMin.x + PlayerRadius;
-			p1.velocity.x = std::abs(p1.velocity.x);
-		}
-		if (p1.position.x > ArenaMax.x - PlayerRadius) {
-			p1.position.x = ArenaMax.x - PlayerRadius;
-			p1.velocity.x =-std::abs(p1.velocity.x);
-		}
-		if (p1.position.y < ArenaMin.y + PlayerRadius) {
-			p1.position.y = ArenaMin.y + PlayerRadius;
-			p1.velocity.y = std::abs(p1.velocity.y);
-		}
-		if (p1.position.y > ArenaMax.y - PlayerRadius) {
-			p1.position.y = ArenaMax.y - PlayerRadius;
-			p1.velocity.y =-std::abs(p1.velocity.y);
-		}
+		// if (p1.position.x < ArenaMin.x + p1.radius) {
+		// 	p1.position.x = ArenaMin.x + p1.radius;
+		// 	p1.velocity.x = std::abs(p1.velocity.x);
+		// }
+		// if (p1.position.x > ArenaMax.x - p1.radius) {
+		// 	p1.position.x = ArenaMax.x - p1.radius;
+		// 	p1.velocity.x =-std::abs(p1.velocity.x);
+		// }
+		// if (p1.position.y < ArenaMin.y + p1.radius) {
+		// 	p1.position.y = ArenaMin.y + p1.radius;
+		// 	p1.velocity.y = std::abs(p1.velocity.y);
+		// }
+		// if (p1.position.y > ArenaMax.y - p1.radius) {
+		// 	p1.position.y = ArenaMax.y - p1.radius;
+		// 	p1.velocity.y =-std::abs(p1.velocity.y);
+		// }
 	}
 
 }
@@ -205,6 +216,8 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		connection.send(player.position);
 		connection.send(player.velocity);
 		connection.send(player.color);
+		connection.send(player.radius);
+		connection.send(player.is_alive);
 	
 		//NOTE: can't just 'send(name)' because player.name is not plain-old-data type.
 		//effectively: truncates player name to 255 chars
@@ -260,6 +273,8 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&player.position);
 		read(&player.velocity);
 		read(&player.color);
+		read(&player.radius);
+		read(&player.is_alive);
 		uint8_t name_len;
 		read(&name_len);
 		//n.b. would probably be more efficient to directly copy from recv_buffer, but I think this is clearer:

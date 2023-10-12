@@ -66,6 +66,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	// if (!game.players.front().is_alive) return;
 
 	//queue data for sending to server:
 	controls.send_controls_message(&client.connection);
@@ -153,29 +154,41 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
 		for (auto const &player : game.players) {
+			
 			glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
 			if (&player == &game.players.front()) {
+				if (!player.is_alive) {
+					// print game over
+					// lines.draw_text("You Lose!",
+					// 	glm::vec3(-aspect + 0.1f * 0.09f + 1.7f, -1.0 + 0.5f + 0.1f * 0.09f + 1.0f, 0.0),
+					// 	glm::vec3(0.09f, 0.0f, 0.0f), glm::vec3(0.0f, 0.09f, 0.0f),
+					// 	glm::u8vec4(0xff, 0xff, 0x00, 0xff));					
+					draw_text(glm::vec2(0.0f, 0.75f), "You Lose!", 0.09f);
+
+					continue;
+				}
 				//mark current player (which server sends first):
 				lines.draw(
-					glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f,-0.5f), 0.0f),
-					glm::vec3(player.position + Game::PlayerRadius * glm::vec2( 0.5f, 0.5f), 0.0f),
+					glm::vec3(player.position + player.radius * glm::vec2(-0.5f,-0.5f), 0.0f),
+					glm::vec3(player.position + player.radius * glm::vec2( 0.5f, 0.5f), 0.0f),
 					col
 				);
 				lines.draw(
-					glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f, 0.5f), 0.0f),
-					glm::vec3(player.position + Game::PlayerRadius * glm::vec2( 0.5f,-0.5f), 0.0f),
+					glm::vec3(player.position + player.radius * glm::vec2(-0.5f, 0.5f), 0.0f),
+					glm::vec3(player.position + player.radius * glm::vec2( 0.5f,-0.5f), 0.0f),
 					col
 				);
 			}
+			if (!player.is_alive) continue;
 			for (uint32_t a = 0; a < circle.size(); ++a) {
 				lines.draw(
-					glm::vec3(player.position + Game::PlayerRadius * circle[a], 0.0f),
-					glm::vec3(player.position + Game::PlayerRadius * circle[(a+1)%circle.size()], 0.0f),
+					glm::vec3(player.position + player.radius * circle[a], 0.0f),
+					glm::vec3(player.position + player.radius * circle[(a+1)%circle.size()], 0.0f),
 					col
 				);
 			}
 
-			draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
+			draw_text(player.position + glm::vec2(0.0f, -0.1f + player.radius), player.name, 0.09f);
 		}
 	}
 	GL_ERRORS();

@@ -1,10 +1,10 @@
-# (TODO: your game's title)
+# Multi Baller
 
-Author: (TODO: your name)
+Author: Haoxi Zhang
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Player need to collide other ball out of bound and ball will become bigger. 
 
-Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
+Networking: The message is the radius, position and velocity of each player. Using a modification version of `send_state_message` inside `Game.cpp`
 
 Screen Shot:
 
@@ -12,9 +12,8 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+WASD to move your circle.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources:
 
 This game was built with [NEST](NEST.md).
-

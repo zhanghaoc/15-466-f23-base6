@@ -25,6 +25,9 @@ struct PlayMode : Mode {
 	//latest game state (from server):
 	Game game;
 
+	// player radius that will grow bigger
+	float PlayerRadius = 0.06f;
+
 	//last message from server:
 	std::string server_message;
 
